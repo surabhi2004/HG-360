@@ -4,20 +4,21 @@
     box-sizing: border-box;
   }
   body {
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    background: #f9fafb;
-    margin: 0;
-    padding: 20px;
-    color: #374151;
-  }
-  .container {
-    max-width: 700px;
-    margin: auto;
-    background: #fff;
-    border-radius: 8px;
-    padding: 24px;
-    box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
-  }
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: #f9fafb;
+  margin: 0;
+  padding: 0;   /* ✅ REMOVE EXTRA SPACE */
+  color: #374151;
+}
+  
+ .container {
+  max-width: 700px;
+  margin: auto;
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px; /* ✅ keep spacing here instead */
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
+}
   h1 {
     font-size: 1.8rem;
     margin-bottom: 8px;
@@ -485,3 +486,13 @@ button[disabled] {
       display: none;
     }
   }
+
+  @media (max-width: 768px) {
+  .wrapper {
+    flex-direction: column;
+  }
+
+  aside {
+    height: auto;
+  }
+}

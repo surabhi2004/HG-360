@@ -34,26 +34,10 @@
       </div>
 
       <!-- Search & Filter moved here -->
-      <div class="flex gap-4 mb-4" style="flex-wrap:wrap; align-items:center;">
-        <input type="text" id="search-input" placeholder="Search recipes..." style="flex:1; min-width: 200px;" />
-        <select id="category-select" style="width:150px;">
-          <option value="all">All Categories</option>
-          <option value="beverages">Beverages</option>
-          <option value="salads">Salads</option>
-          <option value="main course">Main Course</option>
-          <option value="snacks">Snacks</option>
-        </select>
-        <button id="search-btn">Search</button>
-      </div>
+      
 
       <!-- Recipes Section -->
-      <div class="card">
-        <h2>Recommended Recipes</h2>
-        <p style="color:#4a5568; margin-bottom:1rem;">Dosha-specific recipes for your constitution</p>
-
-        <!-- Recipe List -->
-        <div id="recipe-list" class="grid-2"></div>
-      </div>
+      
     </div>
 
     <!-- Sidebar -->
@@ -88,29 +72,12 @@
   </div>
 
   <!-- Recipe Detail Modal -->
- <div id="recipe-detail">
-  <div class="card recipe-modal">
-      <button id="close-detail" style="position:absolute; top:10px; right:10px; background:#e53e3e; border:none; color:white; font-weight:bold; padding:0.3rem 0.7rem; cursor:pointer; border-radius:4px;">X</button>
-      <h2 id="detail-name"></h2>
-      <div id="detail-meta" style="color:#718096; margin-bottom:1rem; font-size:0.9rem;"></div>
-      <div id="detail-dosha" style="margin-bottom:1rem;"></div>
-
-      <div class="tabs" id="detail-tabs" style="margin-top:1rem;">
-        <div class="tabs-header">
-          <div class="tab-trigger active" data-tab="ingredients-detail">Ingredients</div>
-          <div class="tab-trigger" data-tab="instructions-detail">Instructions</div>
-          <div class="tab-trigger" data-tab="benefits-detail">Benefits</div>
-        </div>
-        <div class="tab-content" id="detail-tab-content" style="padding-top:1rem;"></div>
-      </div>
-    </div>
-  </div>
+ 
 
 </div>
 {% endblock %}
  {% block scripts %}
 <script>
-  // Data (from your  code)
   const dietPlans = {
     vata: {
       name: "Vata Diet Plan",
@@ -222,8 +189,6 @@
     },
   };
 
-  
-
   const doshaCards = [
     {
       dosha: "vata",
@@ -251,14 +216,9 @@
     },
   ];
 
-  // State
   let selectedDosha = "vata";
   let activeTab = "principles";
-  let filteredRecipes = [];
-  let selectedRecipe = null;
-  let detailActiveTab = "ingredients-detail";
 
-  // Cached DOM elements
   const doshaSelectionEl = document.getElementById("dosha-selection");
   const dietPlanNameEl = document.getElementById("diet-plan-name");
   const dietPlanDescEl = document.getElementById("diet-plan-desc");
@@ -266,19 +226,6 @@
   const tabContentEl = document.getElementById("tab-content");
   const downloadBtn = document.getElementById("download-btn");
 
-  const searchInput = document.getElementById("search-input");
-  const categorySelect = document.getElementById("category-select");
-  const recipeListEl = document.getElementById("recipe-list");
-
-  const recipeDetailModal = document.getElementById("recipe-detail");
-  const closeDetailBtn = document.getElementById("close-detail");
-  const detailNameEl = document.getElementById("detail-name");
-  const detailMetaEl = document.getElementById("detail-meta");
-  const detailDoshaEl = document.getElementById("detail-dosha");
-  const detailTabsHeaderEl = document.querySelector("#detail-tabs .tabs-header");
-  const detailTabContentEl = document.getElementById("detail-tab-content");
-
-  // Initialize Dosha selection cards
   function renderDoshaSelection() {
     doshaSelectionEl.innerHTML = "";
     doshaCards.forEach(({ dosha, name, description, icon, colorClass, bgColor }) => {
@@ -286,47 +233,36 @@
       card.className = "card cursor-pointer";
       card.style.backgroundColor = bgColor;
       card.style.border = selectedDosha === dosha ? `2px solid #38a169` : "2px solid transparent";
-      card.style.userSelect = "none";
       card.style.padding = "1rem";
       card.style.textAlign = "center";
 
       card.innerHTML = `
-        <div style="font-size:2.5rem; margin-bottom:0.3rem;">${icon}</div>
-        <h3 class="${colorClass}" style="margin-bottom:0.3rem;">${name}</h3>
-        <p style="font-size:0.9rem; color:#4a5568;">${description}</p>
+        <div style="font-size:2.5rem;">${icon}</div>
+        <h3 class="${colorClass}">${name}</h3>
+        <p>${description}</p>
       `;
 
       card.onclick = () => {
-        if(selectedDosha !== dosha) {
-          selectedDosha = dosha;
-          activeTab = "principles";
-          detailActiveTab = "ingredients-detail";
-          selectedRecipe = null;
-          renderDoshaSelection();
-          renderDietPlan();
-          filterAndRenderRecipes();
-          closeRecipeDetail();
-        }
+        selectedDosha = dosha;
+        activeTab = "principles";
+        renderDoshaSelection();
+        renderDietPlan();
       };
 
       doshaSelectionEl.appendChild(card);
     });
   }
 
-  // Render diet plan tabs content
   function renderDietPlan() {
     const plan = dietPlans[selectedDosha];
-    if(!plan) return;
 
     dietPlanNameEl.textContent = plan.name;
     dietPlanDescEl.textContent = plan.description;
 
-    // Highlight active tab
     [...dietTabsHeaderEl.children].forEach(tab => {
       tab.classList.toggle("active", tab.dataset.tab === activeTab);
     });
 
-    // Render tab content
     let contentHtml = "";
     switch(activeTab) {
       case "principles":
@@ -352,7 +288,6 @@
     tabContentEl.innerHTML = contentHtml;
   }
 
-  // Handle diet tabs clicks
   dietTabsHeaderEl.addEventListener("click", e => {
     if(e.target.classList.contains("tab-trigger")) {
       activeTab = e.target.dataset.tab;
@@ -360,189 +295,24 @@
     }
   });
 
-  // Filter recipes based on selected dosha, search, and category
- async function fetchRecipesFromAPI() {
-  try {
-    const searchTerm = searchInput.value.trim().toLowerCase();
-
-    const response = await fetch(
-      `/api/recipes?dosha=${selectedDosha}&search=${searchTerm}`
-    );
-
-    const data = await response.json();
-
-    console.log("API DATA:", data);
-
-    // ❌ API error (quota etc)
-    if (!Array.isArray(data)) {
-      alert("API error or quota exceeded");
-      filteredRecipes = [];
-      renderRecipeList();
-      return;
-    }
-
-    // ✅ MAP DATA (IMPORTANT)
-    filteredRecipes = data.map((r, index) => ({
-      id: index + 1,
-      name: r.name,
-      dosha: Array.isArray(r.dosha) ? r.dosha : [r.dosha || selectedDosha],
-      category: r.category || "main course",
-      time: r.time || "20 mins",
-      difficulty: r.difficulty || "Easy",
-      rating: r.rating || 4.5,
-      ingredients: r.ingredients || [],
-      instructions: r.instructions || [],
-      benefits: r.benefits || []
-    }));
-
-  } catch (error) {
-    console.error("API ERROR:", error);
-    filteredRecipes = [];
-  }
-}
-async function filterAndRenderRecipes() {
-  await fetchRecipesFromAPI();
-
-  const category = categorySelect.value;
-
-  if (category !== "all") {
-    filteredRecipes = filteredRecipes.filter(
-      r => r.category === category
-    );
-  }
-
-  renderRecipeList();
-}
-  // Render recipe list
-  function renderRecipeList() {
-    recipeListEl.innerHTML = "";
-    if(filteredRecipes.length === 0) {
-      recipeListEl.innerHTML = `<p style="grid-column: 1 / -1; color:#718096;">No recipes found.</p>`;
-      return;
-    }
-    filteredRecipes.forEach(recipe => {
-      const card = document.createElement("div");
-      card.className = "card recipe-card";
-      card.style.userSelect = "none";
-      card.style.padding = "1rem";
-
-      card.innerHTML = `
-        <h4>${recipe.name}</h4>
-        <div style="margin-bottom:0.3rem;">
-          <span class="badge badge-small pill-outline">${recipe.time}</span>
-          <span class="badge badge-small pill-outline">${recipe.difficulty}</span>
-          <span class="badge badge-small pill-outline">⭐ ${recipe.rating}</span>
-        </div>
-        <div>
-          ${recipe.dosha.map(d => `<span class="pill">${d.charAt(0).toUpperCase() + d.slice(1)}</span>`).join(" ")}
-        </div>
-      `;
-      card.onclick = () => openRecipeDetail(recipe);
-      recipeListEl.appendChild(card);
-    });
-  }
-
-  // Download diet plan text file
   downloadBtn.addEventListener("click", () => {
     const plan = dietPlans[selectedDosha];
-    if(!plan) return;
 
     let text = `${plan.name}\n${plan.description}\n\nPrinciples:\n`;
     plan.principles.forEach(p => text += `- ${p}\n`);
-    text += `\nInclude Foods:\n`;
-    plan.foods.include.forEach(f => text += `- ${f}\n`);
-    text += `\nAvoid Foods:\n`;
-    plan.foods.avoid.forEach(f => text += `- ${f}\n`);
-    text += `\nMeal Plan:\nBreakfast:\n`;
-    plan.mealPlan.breakfast.forEach(m => text += `- ${m}\n`);
-    text += `Lunch:\n`;
-    plan.mealPlan.lunch.forEach(m => text += `- ${m}\n`);
-    text += `Dinner:\n`;
-    plan.mealPlan.dinner.forEach(m => text += `- ${m}\n`);
 
     const blob = new Blob([text], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
+
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${plan.name.replace(/\s+/g, "_").toLowerCase()}.txt`;
-    document.body.appendChild(a);
+    a.download = "diet_plan.txt";
     a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   });
 
-  // Recipe Detail Modal Logic
-  function openRecipeDetail(recipe) {
-    selectedRecipe = recipe;
-    detailActiveTab = "ingredients-detail";
-
-    detailNameEl.textContent = recipe.name;
-    detailMetaEl.innerHTML = `
-      <span class="badge pill-outline">${recipe.time}</span>
-      <span class="badge pill-outline">${recipe.difficulty}</span>
-      <span class="badge pill-outline">⭐ ${recipe.rating}</span>
-    `;
-    detailDoshaEl.innerHTML = "For: " + recipe.dosha.map(d => `<span class="pill">${d.charAt(0).toUpperCase() + d.slice(1)}</span>`).join(" ");
-
-    [...detailTabsHeaderEl.children].forEach(tab => {
-      tab.classList.toggle("active", tab.dataset.tab === detailActiveTab);
-    });
-
-    renderRecipeDetailTab();
-
-   recipeDetailModal.style.display = "flex";
-
-    document.body.style.overflow = "hidden";
-  }
-
-  function closeRecipeDetail() {
-    recipeDetailModal.style.display = "none";
-    document.body.style.overflow = "";
-    selectedRecipe = null;
-  }
-
-  closeDetailBtn.addEventListener("click", closeRecipeDetail);
-
-  // Detail tabs click
-  detailTabsHeaderEl.addEventListener("click", e => {
-    if(e.target.classList.contains("tab-trigger")) {
-      detailActiveTab = e.target.dataset.tab;
-      [...detailTabsHeaderEl.children].forEach(tab => {
-        tab.classList.toggle("active", tab.dataset.tab === detailActiveTab);
-      });
-      renderRecipeDetailTab();
-    }
-  });
-
-  // Render detail tab content
-  function renderRecipeDetailTab() {
-    if(!selectedRecipe) return;
-
-    let html = "";
-    switch(detailActiveTab) {
-      case "ingredients-detail":
-        html = "<ul>" + selectedRecipe.ingredients.map(i => `<li>${i}</li>`).join("") + "</ul>";
-        break;
-      case "instructions-detail":
-        html = "<ol>" + selectedRecipe.instructions.map(i => `<li>${i}</li>`).join("") + "</ol>";
-        break;
-      case "benefits-detail":
-        html = "<ul>" + selectedRecipe.benefits.map(b => `<li>${b}</li>`).join("") + "</ul>";
-        break;
-    }
-    detailTabContentEl.innerHTML = html;
-  }
-
-  // Event listeners for search and category filter
-document.getElementById("search-btn")
-  .addEventListener("click", filterAndRenderRecipes); 
-  categorySelect.addEventListener("change", filterAndRenderRecipes);
-
-  // Initialize app
   function init() {
     renderDoshaSelection();
     renderDietPlan();
-    filterAndRenderRecipes();
   }
 
   init();

@@ -902,6 +902,8 @@ header {
     font-size: 14px;
 }
 
+
+
 /* Responsive design */
 @media (max-width: 768px) {
     .footer-container {
