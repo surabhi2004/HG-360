@@ -388,9 +388,15 @@ FORMAT:
             recipes = json.loads(json_text)
         except Exception as parse_error:
             print("❌ PARSE ERROR:", parse_error)
-            recipes = []
+            return jsonify({
+                 "success": False,
+                 "message": "Could not fetch recipes"
+            })
 
-        return jsonify(recipes)
+        return jsonify({
+    "success": True,
+    "data": recipes
+})
 
     except Exception as e:
         print("ERROR:", e)

@@ -56,8 +56,14 @@
 async function searchRecipes(event) {
   event.preventDefault();
 
-  const query = document.getElementById("searchInput").value;
+  const query = document.getElementById("searchInput").value.trim();
   const container = document.getElementById("resultsContainer");
+
+  // ❌ Empty input check
+  if (!query) {
+    container.innerHTML = "⚠️ Please enter something";
+    return;
+  }
 
   container.innerHTML = "⏳ Loading recipes...";
 
@@ -65,25 +71,35 @@ async function searchRecipes(event) {
     const res = await fetch(`/api/recipes?search=${encodeURIComponent(query)}`);
     const data = await res.json();
 
-    if (!data || data.length === 0) {
+    console.log("API RESPONSE:", data);
+
+    // ❌ API failed
+    if (!data.success) {
+      container.innerHTML = "⚠️ Server busy. Try again.";
+      return;
+    }
+
+    // ❌ No data
+    if (!data.data || data.data.length === 0) {
       container.innerHTML = `❌ No recipes found for "${query}"`;
       return;
     }
 
-    container.innerHTML = data.map(recipe => `
+    // ✅ Show recipes
+    container.innerHTML = data.data.map(recipe => `
       <div class="remedy-card">
-        <h2>🍛 ${recipe.name}</h2>
+        <h2>🍛 ${recipe.name || "Recipe"}</h2>
 
         <p><b>🧾 Ingredients:</b><br>
-        ${recipe.ingredients.join(", ")}</p>
+        ${(recipe.ingredients || []).join(", ")}</p>
 
         <p><b>👨‍🍳 Process:</b><br>
-        ${recipe.process.join("<br>")}</p>
+        ${(recipe.process || []).join("<br>")}</p>
 
         <p><b>🌿 Benefits:</b><br>
-        ${recipe.benefits.join(", ")}</p>
+        ${(recipe.benefits || []).join(", ")}</p>
 
-        <p><b>⚖️ Suitable for Dosha:</b> ${recipe.dosha}</p>
+        <p><b>⚖️ Suitable for Dosha:</b> ${recipe.dosha || "N/A"}</p>
       </div>
     `).join("");
 
