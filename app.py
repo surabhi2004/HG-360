@@ -287,36 +287,49 @@ def recipes():
     if query:
         try:
             prompt = f"""
-            User query: {query}
-            Give exactly 3 Ayurvedic recipes.
-            STRICT RULES:
-            - Return ONLY JSON
-            - No explanation
-            - No text outside JSON
-            Format:
-            [
-              {{
-                "name": "...",
-                "ingredients": ["...", "..."],
-                "instructions": ["...", "..."],
-                "benefits": ["...", "..."],
-                "dosha": "..."
-              }}
-            ]
-            """
-            model = genai.GenerativeModel("gemini-2.5-flash")
+User query: {query}
+
+Give exactly 3 Ayurvedic recipes.
+
+STRICT RULES:
+- Output ONLY valid JSON
+- No explanation
+- No markdown
+
+FORMAT:
+[
+  {{
+    "name": "Recipe name",
+    "ingredients": ["item1", "item2"],
+    "instructions": ["step1", "step2"],
+    "benefits": ["benefit1", "benefit2"],
+    "dosha": "Vata/Pitta/Kapha"
+  }}
+]
+"""
+
+            model = genai.GenerativeModel("gemini-1.5-flash")
             response = model.generate_content(prompt)
-            text = response.text.strip().replace("```json", "").replace("```", "")
-            print("RAW GEMINI RESPONSE:\n", text)
-            try:
-                json_text = re.search(r'\[.*\]', text, re.DOTALL).group()
-                results = json.loads(json_text)
-            except:
-                print("JSON ERROR:", text)
+
+            text = response.text.strip()
+            text = text.replace("```json", "").replace("```", "").strip()
+
+            print("RECIPE RESPONSE:", text)
+
+            match = re.search(r'\[.*\]', text, re.DOTALL)
+
+            if match:
+                try:
+                    results = json.loads(match.group())
+                except:
+                    print("JSON ERROR:", text)
+                    results = []
+            else:
                 results = []
+
         except Exception as e:
             print("ERROR:", e)
-            flash(f"Error fetching recipes: {e}")
+            flash("⚠️ Try again after a few seconds")
 
     return render_template("recipes.html", query=query, results=results)
 
@@ -341,7 +354,7 @@ def get_recipes():
         ]
         EXTRA: If dosha "{dosha}" is provided, prefer recipes suitable for that dosha
         """
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        model = genai.GenerativeModel("gemini-1.5-flash")
         response = model.generate_content(prompt)
         text = response.text.strip().replace("```json", "").replace("```", "")
         print("RAW GEMINI RESPONSE:\n", text)
