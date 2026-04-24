@@ -1,3 +1,6 @@
+
+Copy
+
 import google.generativeai as genai
 import os, json, re
 from dotenv import load_dotenv
@@ -5,28 +8,28 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from bson.objectid import ObjectId
 from werkzeug.security import generate_password_hash, check_password_hash
 from pymongo import MongoClient
-
+ 
 # ✅ Load env FIRST
 load_dotenv()
 API_KEY = os.getenv("GEMINI_API_KEY")
-
+ 
 if not API_KEY:
     raise ValueError("❌ GEMINI_API_KEY not set")
-
+ 
 genai.configure(api_key=API_KEY)
-
+ 
 app = Flask(__name__)
-app.secret_key = "your_secret_key"
-
-# ✅ MongoDB ONCE only
+app.secret_key = os.getenv("SECRET_KEY", "your_secret_key")
+ 
+# ✅ MongoDB
 mongo_uri = os.getenv("MONGO_URI")
-
+ 
 if not mongo_uri:
     raise ValueError("❌ MONGO_URI not set")
-
+ 
 client = MongoClient(mongo_uri)
 db = client["wellnessDB"]
-
+ 
 users_collection    = db["users"]
 profiles_collection = db["profiles"]
 yoga_col            = db["yoga"]
@@ -34,15 +37,15 @@ meditation_col      = db["meditation"]
 routine_col         = db["routine"]
 user_routines       = db["user_routines"]
 dosh_test_col       = db["dosh_test"]
-
-# ✅ THIS IS THE KEY FIX FOR CHROME BAR
-# Sends Content-Language header on every response
-# Chrome sees the page is already in English and does NOT show the translate bar
+ 
+ 
+# ✅ Sends Content-Language header on every response (stops Chrome translate bar)
 @app.after_request
 def add_header(response):
     response.headers['Content-Language'] = 'en'
     return response
-
+ 
+ 
 # ✅ Helper — finds first working Gemini model
 def get_gemini_model():
     preferred = [
@@ -70,96 +73,117 @@ def get_gemini_model():
     except Exception as e:
         print("❌ Could not list models:", e)
     return genai.GenerativeModel("gemini-pro")
-
+ 
+ 
+# ✅ Safe JSON extractor from AI response
+def extract_json_array(text):
+    """Strips markdown fences and extracts the first JSON array from text."""
+    text = text.strip()
+    text = re.sub(r"```json", "", text)
+    text = re.sub(r"```", "", text)
+    text = text.strip()
+    try:
+        start = text.index('[')
+        end   = text.rindex(']') + 1
+        return json.loads(text[start:end])
+    except Exception as e:
+        print("❌ JSON extraction failed:", e)
+        print("RAW TEXT WAS:", text)
+        return None
+ 
+ 
 # ---------------- ROUTES ----------------
-
+ 
 @app.route("/")
 def landing():
     return render_template("landingpage.html")
-
+ 
+ 
 @app.route("/list-models")
 def list_models():
     try:
-        models = genai.list_models()
-        available = []
-        for m in models:
-            if "generateContent" in m.supported_generation_methods:
-                available.append(m.name)
+        models    = genai.list_models()
+        available = [m.name for m in models if "generateContent" in m.supported_generation_methods]
         return jsonify({"available_models": available})
     except Exception as e:
         return jsonify({"error": str(e)})
-
+ 
+ 
 @app.route("/test-gemini")
 def test_gemini():
     try:
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        model    = get_gemini_model()
         response = model.generate_content("Say hello in one word")
         return jsonify({"status": "✅ Working", "response": response.text})
     except Exception as e:
         return jsonify({"status": "❌ Failed", "error": str(e)})
-
+ 
+ 
 # ----------- SIGN UP -----------
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
-        username = request.form.get("username").strip()
-        email    = request.form.get("email").strip()
-        password = request.form.get("password").strip()
-
+        username = request.form.get("username", "").strip()
+        email    = request.form.get("email", "").strip()
+        password = request.form.get("password", "").strip()
+ 
         if users_collection.find_one({"email": email}):
             flash("User already exists!")
             return redirect(url_for("signin"))
-
+ 
         hashed_pw = generate_password_hash(password)
-        user_id = users_collection.insert_one({
+        user_id   = users_collection.insert_one({
             "username": username,
-            "email": email,
+            "email":    email,
             "password": hashed_pw
         }).inserted_id
-
+ 
         session["user_id"]  = str(user_id)
         session["username"] = username
         return redirect(url_for("dashboard"))
-
+ 
     return render_template("signup.html")
-
+ 
+ 
 # ----------- SIGNIN -----------
 @app.route("/signin", methods=["GET", "POST"])
 def signin():
     if request.method == "POST":
-        email    = request.form.get("email")
-        password = request.form.get("password")
-
+        email    = request.form.get("email", "").strip()
+        password = request.form.get("password", "").strip()
+ 
         user = users_collection.find_one({"email": email})
         if user and check_password_hash(user["password"], password):
             session["user_id"]  = str(user["_id"])
             session["username"] = user["username"]
             return redirect(url_for("dashboard"))
-
+ 
         flash("Invalid credentials")
     return render_template("signin.html")
-
+ 
+ 
 # ----------- FORGOT PASSWORD -----------
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
-        email        = request.form.get("email").strip()
-        new_password = request.form.get("password").strip()
-
+        email        = request.form.get("email", "").strip()
+        new_password = request.form.get("password", "").strip()
+ 
         user = users_collection.find_one({"email": email})
         if not user:
             flash("User not found")
             return redirect(url_for("forgot_password"))
-
+ 
         users_collection.update_one(
             {"email": email},
             {"$set": {"password": generate_password_hash(new_password)}}
         )
         flash("Password updated successfully! Please login.")
         return redirect(url_for("signin"))
-
+ 
     return render_template("forgot_password.html")
-
+ 
+ 
 # ----------- CONTEXT PROCESSOR -----------
 @app.context_processor
 def inject_user():
@@ -167,10 +191,11 @@ def inject_user():
         try:
             user = users_collection.find_one({"_id": ObjectId(session["user_id"])})
             return dict(user=user)
-        except:
+        except Exception:
             return dict(user=None)
     return dict(user=None)
-
+ 
+ 
 # ----------- DASHBOARD -----------
 @app.route("/dashboard")
 def dashboard():
@@ -178,31 +203,34 @@ def dashboard():
         return redirect(url_for("signin"))
     user = users_collection.find_one({"_id": ObjectId(session["user_id"])})
     return render_template("dashboard.html", user=user)
-
+ 
+ 
 # ----------- LOGOUT -----------
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("landing"))
-
+ 
+ 
 # ----------- PROFILE -----------
 @app.route("/myprofile", methods=["GET", "POST"])
 def myprofile():
     user_id = ObjectId(session["user_id"])
     user    = users_collection.find_one({"_id": user_id})
     profile = profiles_collection.find_one({"user_id": user_id})
-
+ 
     if request.method == "POST":
-        data = request.form.to_dict()
+        data            = request.form.to_dict()
         data["user_id"] = user_id
         if profile:
             profiles_collection.update_one({"_id": profile["_id"]}, {"$set": data})
         else:
             profiles_collection.insert_one(data)
         return redirect(url_for("dashboard"))
-
+ 
     return render_template("myprofile.html", profile=profile, user=user)
-
+ 
+ 
 # ----------- SAVE / GET ROUTINE -----------
 @app.route("/api/save-routine", methods=["POST"])
 def save_routine():
@@ -215,12 +243,14 @@ def save_routine():
         upsert=True
     )
     return jsonify({"message": "Saved"})
-
+ 
+ 
 @app.route("/api/get-user-routine")
 def get_user_routine():
     routine = user_routines.find_one({"user_id": session.get("user_id")})
     return jsonify(routine["routine"] if routine else [])
-
+ 
+ 
 @app.route("/api/save-dosha", methods=["POST"])
 def save_dosha():
     users_collection.update_one(
@@ -228,22 +258,23 @@ def save_dosha():
         {"$set": {"dosha": request.json.get("dosha")}}
     )
     return jsonify({"message": "Saved"})
-
+ 
+ 
 # ----------- REMEDIES -----------
 @app.route("/remedies", methods=["GET", "POST"])
 def remedies():
     query   = request.form.get("query", "").lower().strip()
     results = []
-
+ 
     if query:
         try:
             prompt = f"""
 Give exactly 4 Ayurvedic remedies for "{query}".
-
+ 
 STRICT RULES:
 - Return ONLY a JSON array
 - No explanation, no markdown, no text outside JSON
-
+ 
 FORMAT:
 [
   {{
@@ -256,52 +287,52 @@ FORMAT:
   }}
 ]
 """
-            model = genai.GenerativeModel("gemini-2.5-flash")
+            model    = get_gemini_model()
             response = model.generate_content(prompt)
-            text     = response.text.strip().replace("```json", "").replace("```", "").strip()
-            print("✅ REMEDIES GEMINI:", text)
-
-            match = re.search(r"\[.*\]", text, re.DOTALL)
-            if match:
-                results = json.loads(match.group())
+            print("✅ REMEDIES GEMINI RAW:", response.text)
+ 
+            parsed = extract_json_array(response.text)
+            if parsed:
+                results = parsed
             else:
-                flash("Could not parse remedy response. Try again.")
-
+                flash("⚠️ Could not parse remedy response. Please try again.")
+ 
         except Exception as e:
             print("❌ REMEDIES ERROR:", e)
             if "429" in str(e):
-               flash("⚠️ Too many requests. Please wait 30–60 seconds and try again.")
+                flash("⚠️ Too many requests. Please wait 30–60 seconds and try again.")
             elif "403" in str(e):
-               flash("⚠️ Service temporarily unavailable. Please try later.")
+                flash("⚠️ Service temporarily unavailable. Please try later.")
             else:
-                flash("⚠️ Something went wrong. Please try again.")
-            
-
+                flash(f"⚠️ Something went wrong: {str(e)}")
+ 
     return render_template("remedies.html", query=query, results=results)
-
+ 
+ 
 # ----------- DIET -----------
 @app.route("/diet")
 def diet():
     return render_template("diet.html")
-
-# ----------- RECIPES -----------
+ 
+ 
+# ----------- RECIPES (HTML page) -----------
 @app.route("/recipes", methods=["GET", "POST"])
 def recipes():
-    query = request.form.get("query", "").strip()
+    query   = request.form.get("query", "").strip()
     results = []
-
+ 
     if query:
         try:
             prompt = f"""
 User query: {query}
-
-Give exactly 3 Ayurvedic recipes.
-
+ 
+Give exactly 3 Ayurvedic recipes related to the query.
+ 
 STRICT RULES:
-- Output ONLY valid JSON
-- No explanation
-- No markdown
-
+- Output ONLY valid JSON array
+- No explanation, no markdown, no text before or after JSON
+- All keys must be present for every item
+ 
 FORMAT:
 [
   {{
@@ -313,53 +344,50 @@ FORMAT:
   }}
 ]
 """
-
-            model = genai.GenerativeModel("gemini-1.5-flash")
+            model    = get_gemini_model()
             response = model.generate_content(prompt)
-
-            text = response.text.strip()
-            text = text.replace("```json", "").replace("```", "").strip()
-
-            print("RECIPE RESPONSE:", text)
-
-            match = re.search(r'\[.*\]', text, re.DOTALL)
-
-            if match:
-                try:
-                    results = json.loads(match.group())
-                except:
-                    print("JSON ERROR:", text)
-                    results = []
+            print("✅ RECIPES GEMINI RAW:", response.text)
+ 
+            parsed = extract_json_array(response.text)
+            if parsed:
+                results = parsed
             else:
-                results = []
-
+                flash("⚠️ Could not parse recipe response. Please try rephrasing your query.")
+ 
         except Exception as e:
-          print("ERROR:", e)
-          if "429" in str(e):
-            flash("⚠️ Too many requests. Please wait a few seconds.")
-          elif "403" in str(e):
-            flash("⚠️ Service temporarily unavailable.")
-          else:
-            flash("⚠️ Unable to fetch recipes. Try again.")
-
+            print("❌ RECIPES ERROR:", e)
+            if "429" in str(e):
+                flash("⚠️ Too many requests. Please wait 30–60 seconds and try again.")
+            elif "403" in str(e):
+                flash("⚠️ API key issue or model not available. Check your GEMINI_API_KEY.")
+            else:
+                flash(f"⚠️ Something went wrong: {str(e)}")
+ 
     return render_template("recipes.html", query=query, results=results)
-
+ 
+ 
+# ----------- RECIPES (JSON API) -----------
 @app.route("/api/recipes", methods=["GET"])
 def get_recipes():
     search = request.args.get("search", "").strip()
-    dosha = request.args.get("dosha", "").strip()
-
+    dosha  = request.args.get("dosha", "").strip()
+ 
+    if not search and not dosha:
+        return jsonify({"success": False, "message": "No search query provided"}), 400
+ 
+    query_text = search or dosha
+ 
     try:
         prompt = f"""
-User query: "{search}"
-
-Give exactly 3 Ayurvedic recipes.
-
+User query: "{query_text}"
+ 
+Give exactly 3 Ayurvedic recipes related to the query.
+ 
 STRICT RULES:
-- Output ONLY valid JSON
-- No explanation
-- No markdown
-
+- Output ONLY valid JSON array
+- No explanation, no markdown, no text before or after JSON
+- All keys must be present for every item
+ 
 FORMAT:
 [
   {{
@@ -371,69 +399,65 @@ FORMAT:
   }}
 ]
 """
-
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model    = get_gemini_model()
         response = model.generate_content(prompt)
-
-        text = response.text.strip()
-        text = text.replace("```json", "").replace("```", "").strip()
-
-        print("RAW GEMINI RESPONSE:\n", text)
-
-        # ✅ SAFER PARSING
-        try:
-            start = text.index('[')
-            end = text.rindex(']') + 1
-            json_text = text[start:end]
-            recipes = json.loads(json_text)
-        except Exception as parse_error:
-            print("❌ PARSE ERROR:", parse_error)
-            return jsonify({
-                 "success": False,
-                 "message": "Could not fetch recipes"
-            })
-
-        return jsonify({
-    "success": True,
-    "data": recipes
-})
-
+        print("✅ API/RECIPES GEMINI RAW:", response.text)
+ 
+        parsed = extract_json_array(response.text)
+        if parsed:
+            return jsonify({"success": True, "data": parsed})
+        else:
+            return jsonify({"success": False, "message": "Could not parse AI response"}), 500
+ 
     except Exception as e:
-        print("ERROR:", e)
-        return jsonify([])
-
+        print("❌ API/RECIPES ERROR:", e)
+        if "429" in str(e):
+            return jsonify({"success": False, "message": "Too many requests. Please wait and try again."}), 429
+        elif "403" in str(e):
+            return jsonify({"success": False, "message": "API key issue or model not available."}), 403
+        else:
+            return jsonify({"success": False, "message": str(e)}), 500
+ 
+ 
 # ----------- OTHER PAGES -----------
 @app.route("/dosh")
 def dosh():
     return render_template("dosh.html")
-
+ 
+ 
 @app.route("/api/questions")
 def questions():
     return jsonify(list(dosh_test_col.find({}, {"_id": 0})))
-
+ 
+ 
 @app.route("/api/data")
 def get_data():
     return jsonify({
-        "yoga":      list(yoga_col.find({}, {"_id": 0})),
+        "yoga":       list(yoga_col.find({}, {"_id": 0})),
         "meditation": list(meditation_col.find({}, {"_id": 0}))
     })
-
+ 
+ 
 @app.route("/routine")
 def routine():
     return render_template("routine.html")
-
+ 
+ 
 @app.route("/api/routine")
 def get_routine():
     return jsonify(list(routine_col.find({}, {"_id": 0})))
-
+ 
+ 
 @app.route("/panchakarma")
 def panchakarma():
     return render_template("panchkarma.html")
-
+ 
+ 
 @app.route("/yoga")
 def yoga():
     return render_template("yoga.html")
-
+ 
+ 
 # ---------------- MAIN ----------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
