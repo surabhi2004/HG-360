@@ -293,12 +293,10 @@ def recipes():
     if query:
         try:
             prompt = f"""
-User query: "{query}"
-
-Give exactly 3 Ayurvedic recipes.
+Give exactly 3 Ayurvedic recipes for "{query}".
 
 STRICT RULES:
-- Output ONLY valid JSON
+- Output ONLY valid JSON array
 - No explanation
 - No markdown
 
@@ -314,29 +312,27 @@ FORMAT:
 ]
 """
 
-            model = genai.GenerativeModel("gemini-1.5-flash")
+            # SAME AS REMEDIES (IMPORTANT FIX)
+            model = genai.GenerativeModel("gemini-2.5-flash")
             response = model.generate_content(prompt)
 
-            text = response.text.strip()
-            text = text.replace("```json", "").replace("```", "").strip()
+            text = response.text.strip().replace("```json", "").replace("```", "").strip()
+            print("✅ RECIPE RESPONSE:", text)
 
-            print("RECIPE RESPONSE:", text)
+            match = re.search(r"\[.*\]", text, re.DOTALL)
 
-            try:
-                start = text.find('[')
-                end = text.rfind(']') + 1
-                json_text = text[start:end]
-                results = json.loads(json_text)
-            except:
-                print("❌ PARSE ERROR:", text)
-                results = []
+            if match:
+                results = json.loads(match.group())
+            else:
+                flash("⚠️ Could not parse recipes. Try again.")
 
         except Exception as e:
-            print("ERROR:", e)
+            print("❌ RECIPES ERROR:", e)
+
             if "429" in str(e):
-                flash("⚠️ Too many requests. Please wait a few seconds.")
+                flash("⚠️ Too many requests. Please wait 30–60 seconds.")
             elif "403" in str(e):
-                flash("⚠️ Service temporarily unavailable.")
+                flash("⚠️ Service unavailable.")
             else:
                 flash("⚠️ Unable to fetch recipes. Try again.")
 
