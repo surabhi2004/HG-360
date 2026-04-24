@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
- 
+
 <head>
   <meta charset="UTF-8">
   <title>AyurVeda App</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
- 
+
   <style>
     .header-container {
       display: flex;
@@ -17,7 +17,7 @@
       backdrop-filter: blur(10px);
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     }
- 
+
     .logo {
       display: flex;
       align-items: center;
@@ -26,13 +26,13 @@
       font-size: 20px;
       color: #15803d;
     }
- 
+
     .auth-section {
       display: flex;
       align-items: center;
       gap: 12px;
     }
- 
+
     .lang-btn {
       background: #f0fdf4;
       border: 1px solid #15803d;
@@ -42,64 +42,109 @@
       font-size: 13px;
       cursor: pointer;
     }
- 
+
     .lang-btn:hover {
       background: #15803d;
       color: white;
     }
- 
-    /* ===== HIDE GOOGLE TRANSLATE BAR ONLY ===== */
- 
-    /* Hide the top bar iframe */
-    .goog-te-banner-frame {
+
+    /* ===== HIDE GOOGLE TRANSLATE BAR ===== */
+    .goog-te-banner-frame,
+    .goog-te-banner-frame.skiptranslate {
       display: none !important;
       height: 0 !important;
+      visibility: hidden !important;
     }
- 
-    /* Fix body being pushed down */
-    body {
-      top: 0 !important;
-      margin-top: 0 !important;
-    }
- 
-    /* Hide the translate widget box */
+
     #google_translate_element {
       display: none !important;
     }
- 
-    /* Hide tooltip popup */
+
     #goog-gt-tt,
     .goog-te-balloon-frame,
     .goog-tooltip,
     .goog-tooltip-content {
       display: none !important;
     }
- 
-    /* Remove yellow highlight on translated words */
+
     .goog-text-highlight {
       background: none !important;
       box-shadow: none !important;
     }
- 
-    /* Hide only the banner iframe inside skiptranslate
-       Do NOT hide all of skiptranslate - translation needs it */
-    .skiptranslate > iframe {
-      display: none !important;
-      height: 0 !important;
+
+    body {
+      top: 0 !important;
+      margin-top: 0 !important;
+      position: static !important;
     }
- 
-    /* =========================================== */
+
+    .VIpgJd-ZVi9od-aZ2wEe-wOHMyf {
+      display: none !important;
+    }
+    /* ====================================== */
   </style>
- 
+
+  <script>
+    // MutationObserver - hides Google bar the moment it is injected
+    var _observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        mutation.addedNodes.forEach(function(node) {
+          if (node.nodeType !== 1) return;
+          if (node.tagName === 'IFRAME' && node.className &&
+              node.className.toString().indexOf('goog-te-banner') !== -1) {
+            node.style.setProperty('display', 'none', 'important');
+            node.style.setProperty('height', '0', 'important');
+            document.body.style.setProperty('top', '0px', 'important');
+          }
+          var cls = (node.className && typeof node.className === 'string') ? node.className : '';
+          if (node.id === 'goog-gt-tt' ||
+              cls.indexOf('goog-te-banner') !== -1 ||
+              cls.indexOf('VIpgJd') !== -1) {
+            node.style.setProperty('display', 'none', 'important');
+          }
+        });
+
+        if (mutation.type === 'attributes' && mutation.target.tagName === 'BODY') {
+          var t = mutation.target.style.top;
+          if (t && t !== '0px') {
+            mutation.target.style.setProperty('top', '0px', 'important');
+            mutation.target.style.setProperty('margin-top', '0px', 'important');
+          }
+        }
+      });
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+      _observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class']
+      });
+      _hideBanner();
+    });
+
+    function _hideBanner() {
+      document.querySelectorAll('iframe').forEach(function(f) {
+        if (f.className && f.className.toString().indexOf('goog-te-banner') !== -1) {
+          f.style.setProperty('display', 'none', 'important');
+          f.style.setProperty('height', '0', 'important');
+        }
+      });
+      document.body.style.setProperty('top', '0px', 'important');
+      document.body.style.setProperty('margin-top', '0px', 'important');
+    }
+  </script>
+
   {% block styles %}{% endblock %}
 </head>
- 
+
 <body class="bg-gray-100">
- 
+
   <!-- HEADER -->
   <header class="fixed top-0 left-0 w-full z-50">
     <div class="header-container">
- 
+
       <div class="logo">
         <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" fill="none" stroke="currentColor"
           stroke-width="2">
@@ -108,24 +153,21 @@
         </svg>
         <span>HealthGuard360</span>
       </div>
- 
+
       <div class="auth-section">
-        <!-- Google Translate hidden element -->
         <div id="google_translate_element" style="display:none !important;"></div>
- 
-        <!-- Your custom language buttons -->
         <button onclick="translateToHindi()" class="lang-btn">🌐 Hindi</button>
         <button onclick="translateToEnglish()" class="lang-btn">🌐 English</button>
       </div>
- 
+
     </div>
   </header>
- 
+
   <!-- MAIN LAYOUT -->
-  <div class="flex pt-20">
- 
+ <div class="main-wrapper pt-20">
+
     <!-- SIDEBAR -->
-    <div class="w-64 bg-white shadow-lg p-4 flex-shrink-0 h-screen sticky top-20 overflow-y-auto">
+    <div class="sidebar p-4">
       <ul class="space-y-4">
         <li><a href="/dashboard" class="block p-2 hover:bg-green-100">Dashboard</a></li>
         <li><a href="/myprofile" class="block p-2 hover:bg-green-100">My Profile</a></li>
@@ -144,10 +186,9 @@
         </li>
       </ul>
     </div>
- 
+
     <!-- MAIN CONTENT -->
-    <div class="flex-1 p-6">
- 
+    <div class="main-content">
       {% if session.username %}
       <section class="bg-gradient-to-r from-green-600 to-green-700 p-6 rounded-lg text-white mb-6 shadow-md">
         <h2 class="text-2xl text-white font-bold mb-2">Your Ayurvedic Wellness Overview</h2>
@@ -157,87 +198,62 @@
         </span>
       </section>
       {% endif %}
- 
+
       {% block content %}{% endblock %}
     </div>
- 
+
   </div>
- 
-  <!-- ===== GOOGLE TRANSLATE SCRIPTS (CLEAN - NO DUPLICATES) ===== -->
- 
+
+  <!-- ===== GOOGLE TRANSLATE SCRIPTS ===== -->
   <script>
-    // Init Google Translate ONCE
     function googleTranslateElementInit() {
       new google.translate.TranslateElement(
         {
           pageLanguage: 'en',
           includedLanguages: 'hi,en',
-          autoDisplay: false  // stops bar from appearing automatically
+          autoDisplay: false
         },
         'google_translate_element'
       );
+      setTimeout(_hideBanner, 100);
+      setTimeout(_hideBanner, 500);
+      setTimeout(_hideBanner, 1000);
     }
- 
-    // Hide the bar iframe only - NOT translation iframes
-    function forceHideBanner() {
-      document.querySelectorAll('iframe').forEach(function (frame) {
-        // Only target the banner bar iframe
-        if (frame.className.includes('goog-te-banner')) {
-          frame.style.setProperty('display', 'none', 'important');
-          frame.style.setProperty('height', '0', 'important');
-        }
-        // Do NOT block all google iframes - translation engine needs them
-      });
- 
-      // Fix body being pushed down by Google
-      document.body.style.setProperty('top', '0px', 'important');
-      document.body.style.setProperty('margin-top', '0px', 'important');
+
+    // Wait for Google Translate widget to load, then translate
+    function waitForGoogleTranslate(lang, tries) {
+      tries = tries || 0;
+      if (tries > 20) return; // stop after 20 tries
+      var select = document.querySelector('.goog-te-combo');
+      if (select) {
+        select.value = lang;
+        select.dispatchEvent(new Event('change'));
+        setTimeout(_hideBanner, 300);
+        setTimeout(_hideBanner, 800);
+        setTimeout(_hideBanner, 1500);
+      } else {
+        // Widget not loaded yet, wait 200ms and retry
+        setTimeout(function() {
+          waitForGoogleTranslate(lang, tries + 1);
+        }, 200);
+      }
     }
- 
-    // Run on page ready
-    document.addEventListener('DOMContentLoaded', forceHideBanner);
- 
-    // Run after full load using setTimeout only
-    // ⚠️ No setInterval - it breaks translation
-    window.addEventListener('load', function () {
-      setTimeout(forceHideBanner, 300);
-      setTimeout(forceHideBanner, 800);
-      setTimeout(forceHideBanner, 1500);
-      setTimeout(forceHideBanner, 3000);
-    });
- 
-    // Translate to Hindi
+
     function translateToHindi() {
-      var select = document.querySelector('.goog-te-combo');
-      if (select) {
-        select.value = 'hi';
-        select.dispatchEvent(new Event('change'));
-        setTimeout(forceHideBanner, 500);
-        setTimeout(forceHideBanner, 1000);
-        setTimeout(forceHideBanner, 2000);
-      }
+      waitForGoogleTranslate('hi');
     }
- 
-    // Translate to English
+
     function translateToEnglish() {
-      var select = document.querySelector('.goog-te-combo');
-      if (select) {
-        select.value = 'en';
-        select.dispatchEvent(new Event('change'));
-        setTimeout(forceHideBanner, 500);
-        setTimeout(forceHideBanner, 1000);
-        setTimeout(forceHideBanner, 2000);
-      }
+      waitForGoogleTranslate('en');
     }
   </script>
- 
-  <!-- Google Translate API - loaded ONCE only -->
+
+  <!-- Google Translate API -->
   <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
- 
-  <!-- ============================================================ -->
- 
+  <!-- ====================================== -->
+
   {% block scripts %}{% endblock %}
- 
+
 </body>
- 
+
 </html>

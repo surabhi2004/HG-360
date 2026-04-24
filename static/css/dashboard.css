@@ -1,42 +1,25 @@
-
-    /* Custom scrollbar for sidebar */
-    ::-webkit-scrollbar {
-      width: 8px;
-    }
-    ::-webkit-scrollbar-thumb {
-      background-color: rgba(107, 114, 128, 0.4);
-      border-radius: 5px;
-    }
-    /* Hide scrollbars on sidebar for non-webkit */
-    .no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-    /* 🔹 Add Routine Section */
+/* ===== ADD ROUTINE CARD ===== */
 .add-routine-box {
   background: #ffffff;
   padding: 16px;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
-/* 🔹 Heading */
 .add-routine-box h3 {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
   margin-bottom: 10px;
 }
 
-/* 🔹 Inputs */
+/* INPUT */
 .add-routine-box input {
   padding: 10px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   width: 100%;
   margin-bottom: 10px;
-  outline: none;
-  transition: 0.2s;
 }
 
 .add-routine-box input:focus {
@@ -44,70 +27,79 @@
   box-shadow: 0 0 0 2px rgba(34,197,94,0.2);
 }
 
-/* 🔹 Button */
+/* BUTTON */
 .add-routine-box button {
   background: #22c55e;
   color: white;
-  padding: 10px 14px;
+  padding: 10px;
   border-radius: 8px;
   border: none;
-  cursor: pointer;
-  transition: 0.3s;
   width: 100%;
-  font-weight: 500;
+  cursor: pointer;
 }
 
 .add-routine-box button:hover {
   background: #16a34a;
 }
 
-/* 🔹 Routine Title Icon Section */
-#routine-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #111827;
-}
-
-/* 🔹 SVG Icon Styling */
-#routine-title svg {
-  color: #22c55e;
-}
-    .no-scrollbar {
-      -ms-overflow-style: none;  /* IE and Edge */
-      scrollbar-width: none;  /* Firefox */
-    }
-    /* Routine Card */
+/* ROUTINE LIST */
 .routine-item {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  border: 1px solid #e5e7eb;
   padding: 12px;
+  border: 1px solid #e5e7eb;
   border-radius: 10px;
   margin-bottom: 10px;
-  transition: 0.3s;
 }
 
 .routine-item:hover {
-  background: #f3f4f6;
+  background: #f9fafb;
 }
 
 .done {
   opacity: 0.6;
   text-decoration: line-through;
 }
-    .icon-stroke {
-      stroke-width: 1.5;
-      stroke-linejoin: round;
-      stroke-linecap: round;
-    }
-    .text-strike-through {
-      text-decoration: line-through;
-      color: #6b7280; /* Gray-500 */
-    }
-    /* Accessible focus */
-    button:focus-visible {
-      outline: 3px solid #4ade80; /* green-400 */
-      outline-offset: 2px;
-    }
+
+/* QUICK ACCESS GRID */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+/* BUTTON CARDS */
+.grid button {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  transition: 0.3s;
+}
+
+.grid button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+/* ===== MOBILE FIX ===== */
+@media (max-width: 768px) {
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  section {
+    padding: 12px !important;
+    margin-bottom: 12px;
+  }
+
+  .add-routine-box {
+    padding: 12px;
+  }
+
+  /* Prevent overflow causing bottom gap */
+  body {
+    overflow-x: hidden;
+  }
+}

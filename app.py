@@ -9,13 +9,22 @@ from pymongo import MongoClient
 # ✅ Load env FIRST
 load_dotenv()
 API_KEY = os.getenv("GEMINI_API_KEY")
+
+if not API_KEY:
+    raise ValueError("❌ GEMINI_API_KEY not set")
+
 genai.configure(api_key=API_KEY)
 
 app = Flask(__name__)
 app.secret_key = "your_secret_key"
 
 # ✅ MongoDB ONCE only
-client = MongoClient("mongodb+srv://surabhi:Surabhi1611@cluster0.nq7sjpf.mongodb.net/")
+mongo_uri = os.getenv("MONGO_URI")
+
+if not mongo_uri:
+    raise ValueError("❌ MONGO_URI not set")
+
+client = MongoClient(mongo_uri)
 db = client["wellnessDB"]
 
 users_collection    = db["users"]
@@ -25,6 +34,14 @@ meditation_col      = db["meditation"]
 routine_col         = db["routine"]
 user_routines       = db["user_routines"]
 dosh_test_col       = db["dosh_test"]
+
+# ✅ THIS IS THE KEY FIX FOR CHROME BAR
+# Sends Content-Language header on every response
+# Chrome sees the page is already in English and does NOT show the translate bar
+@app.after_request
+def add_header(response):
+    response.headers['Content-Language'] = 'en'
+    return response
 
 # ✅ Helper — finds first working Gemini model
 def get_gemini_model():
@@ -47,7 +64,6 @@ def get_gemini_model():
             if model_name in available:
                 print(f"✅ Using model: {model_name}")
                 return genai.GenerativeModel(model_name)
-        # fallback: use first available
         if available:
             print(f"⚠️ Fallback model: {available[0]}")
             return genai.GenerativeModel(available[0])
@@ -61,7 +77,6 @@ def get_gemini_model():
 def landing():
     return render_template("landingpage.html")
 
-# ✅ List available models (for debugging)
 @app.route("/list-models")
 def list_models():
     try:
@@ -74,7 +89,6 @@ def list_models():
     except Exception as e:
         return jsonify({"error": str(e)})
 
-# ✅ Test Gemini
 @app.route("/test-gemini")
 def test_gemini():
     try:
@@ -223,10 +237,8 @@ def remedies():
 
     if query:
         try:
-            model = genai.GenerativeModel("gemini-2.5-flash")
-
             prompt = f"""
-Give exactly 2 Ayurvedic remedies for "{query}".
+Give exactly 4 Ayurvedic remedies for "{query}".
 
 STRICT RULES:
 - Return ONLY a JSON array
@@ -266,91 +278,7 @@ FORMAT:
 def diet():
     return render_template("diet.html")
 
-# ----------- RECIPES PAGE (form based) -----------
-# @app.route("/recipes", methods=["GET", "POST"])
-# def recipes():
-#     query = request.form.get("query", "").strip()
-#     results = []
-
-#     if query:
-#         try:
-#             model = genai.GenerativeModel("gemini-2.5-flash")
-
-#             prompt = f"""
-# Give exactly 3 Ayurvedic recipes for "{query}"
-
-# STRICT RULES:
-# - Return ONLY JSON array
-# - No explanation
-
-# [
-#   {{
-#     "name": "...",
-#     "ingredients": ["...", "..."],
-#     "process": ["...", "..."],
-#     "benefits": ["...", "..."],
-#     "dosha": "..."
-#   }}
-# ]
-# """
-
-#             response = model.generate_content(prompt)
-
-#             text = response.text.strip().replace("```json", "").replace("```", "")
-#             print("RECIPES:", text)
-
-#             match = re.search(r"\[.*\]", text, re.DOTALL)
-
-#             if match:
-#                 results = json.loads(match.group())
-#             else:
-#                 results = []
-
-#         except Exception as e:
-#             print("ERROR:", e)
-#             results = []
-
-#     return render_template("recipes.html", query=query, results=results)
-
-
-# # ----------- RECIPES API (fetch/ajax based) -----------
-# @app.route("/api/recipes", methods=["GET"])
-# def get_recipes():
-#     search = request.args.get("search", "").strip()
-
-#     if not search:
-#         return jsonify([])
-
-#     try:
-#         model = genai.GenerativeModel("gemini-2.5-flash")
-
-       
-
-#         response = model.generate_content(prompt)
-
-#         text = response.text.strip()
-#         text = text.replace("```json", "").replace("```", "")
-
-#         print("API RESPONSE:", text)
-
-#         match = re.search(r"\[.*\]", text, re.DOTALL)
-
-#         if match:
-#             data = json.loads(match.group())
-
-#             if isinstance(data, list) and len(data) > 0:
-#                 return jsonify(data)
-#             else:
-#                 return jsonify([])
-
-#         return jsonify([])
-
-#     except Exception as e:
-#         print("API ERROR:", e)
-#         return jsonify([])   # ❌ NO FALLBACK
-
-
-
+# ----------- RECIPES -----------
 @app.route("/recipes", methods=["GET", "POST"])
 def recipes():
     query = request.form.get("query", "").strip()
@@ -360,14 +288,11 @@ def recipes():
         try:
             prompt = f"""
             User query: {query}
-
             Give exactly 3 Ayurvedic recipes.
-
             STRICT RULES:
             - Return ONLY JSON
             - No explanation
             - No text outside JSON
-
             Format:
             [
               {{
@@ -379,53 +304,31 @@ def recipes():
               }}
             ]
             """
-
-            # ✅ CORRECT MODEL
             model = genai.GenerativeModel("gemini-2.5-flash")
-
             response = model.generate_content(prompt)
-
             text = response.text.strip().replace("```json", "").replace("```", "")
-
             print("RAW GEMINI RESPONSE:\n", text)
-
-            import re
             try:
                 json_text = re.search(r'\[.*\]', text, re.DOTALL).group()
                 results = json.loads(json_text)
             except:
                 print("JSON ERROR:", text)
                 results = []
-
         except Exception as e:
             print("ERROR:", e)
             flash(f"Error fetching recipes: {e}")
 
     return render_template("recipes.html", query=query, results=results)
+
 @app.route("/api/recipes", methods=["GET"])
 def get_recipes():
-    import json, re
-
     search = request.args.get("search", "").strip()
     dosha = request.args.get("dosha", "").strip()
 
     try:
         prompt = f"""
         User query: "{search}"
-
-        The user may enter:
-        - an ingredient (like potato, milk)
-        - OR a recipe name (like khichdi, dal)
-
-        TASK:
-        Generate exactly 3 Ayurvedic recipes based on the query.
-
-        RULES:
-        - If ingredient → recipes using that ingredient
-        - If recipe name → explain that recipe
-        - Include Ayurvedic perspective
-        - Keep it practical and real
-
+        TASK: Generate exactly 3 Ayurvedic recipes based on the query.
         OUTPUT FORMAT (STRICT JSON ONLY):
         [
           {{
@@ -436,33 +339,21 @@ def get_recipes():
             "dosha": "Vata/Pitta/Kapha"
           }}
         ]
-
-        EXTRA:
-        - If dosha "{dosha}" is provided, prefer recipes suitable for that dosha
+        EXTRA: If dosha "{dosha}" is provided, prefer recipes suitable for that dosha
         """
-
         model = genai.GenerativeModel("gemini-2.5-flash")
         response = model.generate_content(prompt)
-
-        text = response.text.strip()
-        text = text.replace("```json", "").replace("```", "")
-
+        text = response.text.strip().replace("```json", "").replace("```", "")
         print("RAW GEMINI RESPONSE:\n", text)
-
         match = re.search(r"\[.*\]", text, re.DOTALL)
-
         if match:
             recipes = json.loads(match.group())
         else:
             recipes = []
-
         return jsonify(recipes)
-
     except Exception as e:
         print("ERROR:", e)
         return jsonify([])
-
-
 
 # ----------- OTHER PAGES -----------
 @app.route("/dosh")
@@ -498,6 +389,5 @@ def yoga():
 
 # ---------------- MAIN ----------------
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))  # 🔥 IMPORTANT
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-    print("Render fix applied")

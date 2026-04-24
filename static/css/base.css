@@ -1,0 +1,133 @@
+/* base.css - global base styles */
+body {
+  top: 0 !important;
+  margin-top: 0 !important;
+  position: static !important;
+}
+
+/* Hide ALL Google Translate UI elements */
+.goog-te-banner-frame,
+iframe.goog-te-banner-frame,
+.skiptranslate > iframe {
+  display: none !important;
+  height: 0 !important;
+  visibility: hidden !important;
+}
+
+#goog-gt-tt,
+.goog-te-balloon-frame,
+.goog-tooltip,
+.goog-te-ftab-float,
+.goog-te-menu-frame,
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
+.VIpgJd-ZVi9od-aZ2wEe {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+.goog-text-highlight {
+  background: none !important;
+  box-shadow: none !important;
+}
+/* ===== RESET ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: Arial, sans-serif;
+}
+
+/* ===== BODY FIX (IMPORTANT FOR MOBILE GAP) ===== */
+body {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  display: flex;
+  flex-direction: column;
+  background: #f3f4f6;
+}
+
+/* ===== MAIN WRAPPER ===== */
+.main-wrapper {
+  display: flex;
+  flex: 1;
+  width: 100%;
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+  width: 250px;
+  background: #ffffff;
+  height: calc(100vh - 80px);
+  position: sticky;
+  top: 80px;
+  overflow-y: auto;
+  border-right: 1px solid #e5e7eb;
+}
+
+/* ===== MAIN CONTENT ===== */
+.main-content {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Remove last element bottom gap */
+.main-content > *:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* ===== SCROLL FIX ===== */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 768px) {
+
+  body {
+    overflow-x: hidden;
+  }
+
+  .main-wrapper {
+    flex-direction: column;
+  }
+
+  /* Sidebar becomes top scroll menu */
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+    top: 0;
+    display: flex;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .sidebar ul {
+    display: flex;
+    gap: 15px;
+  }
+
+  .sidebar li {
+    list-style: none;
+  }
+
+  .sidebar a {
+    display: inline-block;
+    padding: 8px 12px;
+    background: #f9fafb;
+    border-radius: 6px;
+  }
+
+  .main-content {
+    padding: 12px;
+  }
+}

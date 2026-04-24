@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-
+ 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,23 +8,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/landingpage.css') }}">
-
   <link rel="stylesheet" href="../static/css/style.css">
-  <style>
-    .goog-te-banner-frame.skiptranslate {
-      display: none !important;
-    }
-
-    body {
-      top: 0px !important;
-    }
-
-    .goog-te-gadget {
-      display: none;
-    }
-  </style>
 </head>
-
+ 
 <body>
   <!-- Header -->
   <header>
@@ -43,15 +29,12 @@
           <a href="/dashboard" class="btn btn-primary btn-sm">Dashboard</a>
           <button id="logout-btn" class="btn btn-outline btn-sm">Logout</button>
         </div>
-        <div id="google_translate_element"></div>
-        <button onclick="translateToHindi()" class="lang-btn">Hindi</button>
-        <button onclick="translateToEnglish()" class="lang-btn">English</button> <a href="{{ url_for('signup') }}"
-          id="auth-btn" class="btn btn-primary btn-sm">Sign Up</a>
-        <a href="{{ url_for('signin') }}" id="auth-btn" class="btn btn-primary btn-sm">Sign in</a>
+        <a href="{{ url_for('signup') }}" class="btn btn-primary btn-sm">Sign Up</a>
+        <a href="{{ url_for('signin') }}" class="btn btn-primary btn-sm">Sign in</a>
       </div>
     </div>
   </header>
-
+ 
   <!-- Hero Section -->
   <section class="hero">
     <div class="container">
@@ -66,7 +49,7 @@
       </div>
     </div>
   </section>
-
+ 
   <!-- Features Preview -->
   <section class="features">
     <div class="container">
@@ -76,7 +59,7 @@
           Comprehensive tools and resources to integrate ancient Ayurvedic wisdom into your modern lifestyle
         </p>
       </div>
-
+ 
       <div class="features-grid">
         <!-- Home Remedies -->
         <div class="card card-border-green">
@@ -85,8 +68,7 @@
               <svg class="card-icon card-icon-green" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                 viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                 stroke-linejoin="round">
-                <path
-                  d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
               </svg>
               <h3 class="card-title card-title-green">Home Remedies</h3>
             </div>
@@ -101,7 +83,7 @@
             </ul>
           </div>
         </div>
-
+ 
         <!-- Dosha Quiz -->
         <div class="card card-border-orange">
           <div class="card-header">
@@ -126,7 +108,7 @@
             </ul>
           </div>
         </div>
-
+ 
         <!-- Daily Routine -->
         <div class="card card-border-blue">
           <div class="card-header">
@@ -152,7 +134,7 @@
             </ul>
           </div>
         </div>
-
+ 
         <!-- Food & Diet -->
         <div class="card card-border-yellow">
           <div class="card-header">
@@ -177,7 +159,7 @@
             </ul>
           </div>
         </div>
-
+ 
         <!-- Yoga Practices -->
         <div class="card card-border-green">
           <div class="card-header">
@@ -204,7 +186,7 @@
             </ul>
           </div>
         </div>
-
+ 
         <!-- Panchakarma Therapy -->
         <div class="card card-border-orange">
           <div class="card-header">
@@ -228,17 +210,15 @@
             </ul>
           </div>
         </div>
-
-
       </div>
-
+    </div>
   </section>
+ 
   <footer class="footer">
     <div class="footer-container">
       <div class="footer-section">
         <h3>About Ayurvedic Wellness</h3>
-        <p>Discover holistic healing through ancient Ayurvedic practices. Embrace natural wellness for body, mind, and
-          spirit.</p>
+        <p>Discover holistic healing through ancient Ayurvedic practices. Embrace natural wellness for body, mind, and spirit.</p>
       </div>
       <div class="footer-section">
         <h3>Contact Us</h3>
@@ -261,58 +241,11 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <p>&copy; 2023 Ayurvedic Wellness. All rights reserved. | Designed with <i class="fas fa-heart"></i> for wellness.
-      </p>
+      <p>&copy; 2023 Ayurvedic Wellness. All rights reserved. | Designed with <i class="fas fa-heart"></i> for wellness.</p>
     </div>
   </footer>
-  <!-- Auth Dialog -->
-  <div id="auth-dialog" class="dialog-overlay">
-    <div class="dialog-content">
-      <div class="dialog-header">
-        <h3 class="dialog-title">Welcome to AyurVeda</h3>
-        <p class="dialog-description">Sign in to access personalized Ayurvedic guidance</p>
-      </div>
-
-      <div class="tabs">
-        <div class="tabs-list">
-          <button id="login-tab" class="tabs-trigger active">Sign In</button>
-          <button id="register-tab" class="tabs-trigger">Sign Up</button>
-        </div>
-
-        <script type="text/javascript">
-          function googleTranslateElementInit() {
-            new google.translate.TranslateElement(
-              { pageLanguage: 'en', includedLanguages: 'hi,en' },
-              'google_translate_element'
-            );
-          }
-        </script>
-
-        <script>
-          function translateToHindi() {
-            const select = document.querySelector(".goog-te-combo");
-            if (select) {
-              select.value = "hi";
-              select.dispatchEvent(new Event("change"));
-            } else {
-              alert("Translator not loaded yet. Please wait...");
-            }
-          }
-
-          function translateToEnglish() {
-            const select = document.querySelector(".goog-te-combo");
-            if (select) {
-              select.value = "en";
-              select.dispatchEvent(new Event("change"));
-            } else {
-              alert("Translator not loaded yet. Please wait...");
-            }
-          }
-        </script>
-
-        <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-
-
+ 
 </body>
-
+ 
 </html>
+ 
