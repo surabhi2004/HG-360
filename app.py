@@ -287,13 +287,13 @@ def diet():
 # ----------- RECIPES -----------
 @app.route("/recipes", methods=["GET", "POST"])
 def recipes():
-    query   = request.form.get("query", "").lower().strip()
+    query = request.form.get("query", "").strip()
     results = []
 
     if query:
         try:
             prompt = f"""
-User query: "{search}"
+User query: "{query}"
 
 Give exactly 3 Ayurvedic recipes.
 
@@ -313,28 +313,34 @@ FORMAT:
   }}
 ]
 """
-            model = genai.GenerativeModel("gemini-2.5-flash")
-            response = model.generate_content(prompt)
-            text     = response.text.strip().replace("```json", "").replace("```", "").strip()
-            print("✅ REMEDIES GEMINI:", text)
 
-            match = re.search(r"\[.*\]", text, re.DOTALL)
-            if match:
-                results = json.loads(match.group())
-            else:
-                flash("Could not parse remedy response. Try again.")
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            response = model.generate_content(prompt)
+
+            text = response.text.strip()
+            text = text.replace("```json", "").replace("```", "").strip()
+
+            print("RECIPE RESPONSE:", text)
+
+            try:
+                start = text.find('[')
+                end = text.rfind(']') + 1
+                json_text = text[start:end]
+                results = json.loads(json_text)
+            except:
+                print("❌ PARSE ERROR:", text)
+                results = []
 
         except Exception as e:
-            print("❌ REMEDIES ERROR:", e)
+            print("ERROR:", e)
             if "429" in str(e):
-               flash("⚠️ Too many requests. Please wait 30–60 seconds and try again.")
+                flash("⚠️ Too many requests. Please wait a few seconds.")
             elif "403" in str(e):
-               flash("⚠️ Service temporarily unavailable. Please try later.")
+                flash("⚠️ Service temporarily unavailable.")
             else:
-                flash("⚠️ Something went wrong. Please try again.")
-            
+                flash("⚠️ Unable to fetch recipes. Try again.")
 
-    return render_template("remedies.html", query=query, results=results)
+    return render_template("recipes.html", query=query, results=results)
 # ----------- OTHER PAGES -----------
 @app.route("/dosh")
 def dosh():
