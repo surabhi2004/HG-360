@@ -287,77 +287,12 @@ def diet():
 # ----------- RECIPES -----------
 @app.route("/recipes", methods=["GET", "POST"])
 def recipes():
-    query = request.form.get("query", "").strip()
+    query   = request.form.get("query", "").lower().strip()
     results = []
 
     if query:
         try:
             prompt = f"""
-User query: {query}
-
-Give exactly 3 Ayurvedic recipes.
-
-STRICT RULES:
-- Output ONLY valid JSON
-- No explanation
-- No markdown
-
-FORMAT:
-[
-  {{
-    "name": "Recipe name",
-    "ingredients": ["item1", "item2"],
-    "instructions": ["step1", "step2"],
-    "benefits": ["benefit1", "benefit2"],
-    "dosha": "Vata/Pitta/Kapha"
-  }}
-]
-"""
-
-            model = genai.GenerativeModel("gemini-2.5-flash")
-            response = model.generate_content(prompt)
-
-            text = response.text.strip()
-            text = text.replace("```json", "").replace("```", "").strip()
-
-            print("RECIPE RESPONSE:", text)
-
-            match = re.search(r'\[.*\]', text, re.DOTALL)
-
-            if match:
-                try:
-                    results = json.loads(match.group())
-                except:
-                    print("JSON ERROR:", text)
-                    results = []
-            else:
-                results = []
-
-        except Exception as e:
-          print("ERROR:", e)
-          if "429" in str(e):
-            flash("⚠️ Too many requests. Please wait a few seconds.")
-          elif "403" in str(e):
-            flash("⚠️ Service temporarily unavailable.")
-          else:
-            flash("⚠️ Unable to fetch recipes. Try again.")
-
-    return render_template("recipes.html", query=query, results=results)
-
-@app.route("/api/recipes", methods=["GET"])
-def get_recipes():
-    search = request.args.get("search", "").strip()
-    dosha = request.args.get("dosha", "").strip()
-
-    # ❌ Empty search check
-    if not search:
-        return jsonify({
-            "success": False,
-            "message": "Empty search"
-        })
-
-    try:
-        prompt = f"""
 User query: "{search}"
 
 Give exactly 3 Ayurvedic recipes.
@@ -378,55 +313,28 @@ FORMAT:
   }}
 ]
 """
+            model = genai.GenerativeModel("gemini-2.5-flash")
+            response = model.generate_content(prompt)
+            text     = response.text.strip().replace("```json", "").replace("```", "").strip()
+            print("✅ REMEDIES GEMINI:", text)
 
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        response = model.generate_content(prompt)
+            match = re.search(r"\[.*\]", text, re.DOTALL)
+            if match:
+                results = json.loads(match.group())
+            else:
+                flash("Could not parse remedy response. Try again.")
 
-        text = response.text.strip()
-        text = text.replace("```json", "").replace("```", "").strip()
+        except Exception as e:
+            print("❌ REMEDIES ERROR:", e)
+            if "429" in str(e):
+               flash("⚠️ Too many requests. Please wait 30–60 seconds and try again.")
+            elif "403" in str(e):
+               flash("⚠️ Service temporarily unavailable. Please try later.")
+            else:
+                flash("⚠️ Something went wrong. Please try again.")
+            
 
-        print("RAW GEMINI RESPONSE:\n", text)
-
-        # ✅ STRONG PARSING (MOST IMPORTANT FIX)
-        try:
-            start = text.find('[')
-            end = text.rfind(']') + 1
-            json_text = text[start:end]
-
-            recipes = json.loads(json_text)
-
-            return jsonify({
-                "success": True,
-                "data": recipes
-            })
-
-        except Exception as parse_error:
-            print("❌ PARSE ERROR:", parse_error)
-            print("RAW TEXT:", text)
-
-            return jsonify({
-                "success": False,
-                "message": "Could not parse recipes"
-            })
-
-    except Exception as e:
-        print("❌ API ERROR:", e)
-
-        if "429" in str(e):
-            return jsonify({
-                "success": False,
-                "message": "Too many requests"
-            })
-        elif "403" in str(e):
-            return jsonify({
-                "success": False,
-                "message": "API key issue"
-            })
-        else:
-            return jsonify({
-                "success": False,
-                "message": "Server error"
-            })
+    return render_template("remedies.html", query=query, results=results)
 # ----------- OTHER PAGES -----------
 @app.route("/dosh")
 def dosh():
