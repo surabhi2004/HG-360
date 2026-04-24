@@ -269,7 +269,13 @@ FORMAT:
 
         except Exception as e:
             print("❌ REMEDIES ERROR:", e)
-            flash(f"Error: {e}")
+            if "429" in str(e):
+               flash("⚠️ Too many requests. Please wait 30–60 seconds and try again.")
+            elif "403" in str(e):
+               flash("⚠️ Service temporarily unavailable. Please try later.")
+            else:
+                flash("⚠️ Something went wrong. Please try again.")
+            
 
     return render_template("remedies.html", query=query, results=results)
 
@@ -328,8 +334,13 @@ FORMAT:
                 results = []
 
         except Exception as e:
-            print("ERROR:", e)
-            flash("⚠️ Try again after a few seconds")
+          print("ERROR:", e)
+          if "429" in str(e):
+            flash("⚠️ Too many requests. Please wait a few seconds.")
+          elif "403" in str(e):
+            flash("⚠️ Service temporarily unavailable.")
+          else:
+            flash("⚠️ Unable to fetch recipes. Try again.")
 
     return render_template("recipes.html", query=query, results=results)
 
@@ -340,30 +351,47 @@ def get_recipes():
 
     try:
         prompt = f"""
-        User query: "{search}"
-        TASK: Generate exactly 3 Ayurvedic recipes based on the query.
-        OUTPUT FORMAT (STRICT JSON ONLY):
-        [
-          {{
-            "name": "Recipe name",
-            "ingredients": ["item1", "item2"],
-            "process": ["step1", "step2"],
-            "benefits": ["benefit1", "benefit2"],
-            "dosha": "Vata/Pitta/Kapha"
-          }}
-        ]
-        EXTRA: If dosha "{dosha}" is provided, prefer recipes suitable for that dosha
-        """
+User query: "{search}"
+
+Give exactly 3 Ayurvedic recipes.
+
+STRICT RULES:
+- Output ONLY valid JSON
+- No explanation
+- No markdown
+
+FORMAT:
+[
+  {{
+    "name": "Recipe name",
+    "ingredients": ["item1", "item2"],
+    "process": ["step1", "step2"],
+    "benefits": ["benefit1", "benefit2"],
+    "dosha": "Vata/Pitta/Kapha"
+  }}
+]
+"""
+
         model = genai.GenerativeModel("gemini-1.5-flash")
         response = model.generate_content(prompt)
-        text = response.text.strip().replace("```json", "").replace("```", "")
+
+        text = response.text.strip()
+        text = text.replace("```json", "").replace("```", "").strip()
+
         print("RAW GEMINI RESPONSE:\n", text)
-        match = re.search(r"\[.*\]", text, re.DOTALL)
-        if match:
-            recipes = json.loads(match.group())
-        else:
+
+        # ✅ SAFER PARSING
+        try:
+            start = text.index('[')
+            end = text.rindex(']') + 1
+            json_text = text[start:end]
+            recipes = json.loads(json_text)
+        except Exception as parse_error:
+            print("❌ PARSE ERROR:", parse_error)
             recipes = []
+
         return jsonify(recipes)
+
     except Exception as e:
         print("ERROR:", e)
         return jsonify([])
