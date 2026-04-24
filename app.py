@@ -5,6 +5,10 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from bson.objectid import ObjectId
 from werkzeug.security import generate_password_hash, check_password_hash
 from pymongo import MongoClient
+import time
+
+# simple cache (memory)
+cache = {}
 
 # ✅ Load env FIRST
 load_dotenv()
@@ -232,50 +236,60 @@ def save_dosha():
 # ----------- REMEDIES -----------
 @app.route("/remedies", methods=["GET", "POST"])
 def remedies():
-    query   = request.form.get("query", "").lower().strip()
+    query = request.form.get("query", "").lower().strip()
     results = []
 
     if query:
+
+        # ✅ CACHE CHECK
+        if query in cache:
+            return render_template("remedies.html", query=query, results=cache[query])
+
         try:
+            time.sleep(1)  # ✅ prevent rate burst
+
             prompt = f"""
 Give exactly 4 Ayurvedic remedies for "{query}".
 
 STRICT RULES:
-- Return ONLY a JSON array
-- No explanation, no markdown, no text outside JSON
+- Return ONLY JSON array
 
 FORMAT:
 [
   {{
     "disease": "...",
-    "ingredients": ["...", "..."],
-    "method": ["...", "..."],
+    "ingredients": ["..."],
+    "method": ["..."],
     "frequency": "...",
     "dosha": "...",
     "category": "..."
   }}
 ]
 """
-            model = genai.GenerativeModel("gemini-2.5-flash")
+
+            # ✅ FIXED MODEL
+            model = genai.GenerativeModel("gemini-1.5-flash")
             response = model.generate_content(prompt)
-            text     = response.text.strip().replace("```json", "").replace("```", "").strip()
-            print("✅ REMEDIES GEMINI:", text)
+
+            text = response.text.strip().replace("```json", "").replace("```", "")
 
             match = re.search(r"\[.*\]", text, re.DOTALL)
+
             if match:
                 results = json.loads(match.group())
+                cache[query] = results   # ✅ store in cache
             else:
-                flash("Could not parse remedy response. Try again.")
+                flash("⚠️ Try again")
 
         except Exception as e:
-            print("❌ REMEDIES ERROR:", e)
+            print("ERROR:", e)
+
             if "429" in str(e):
-               flash("⚠️ Too many requests. Please wait 30–60 seconds and try again.")
+                flash("⚠️ Too many requests. Wait 1 minute.")
             elif "403" in str(e):
-               flash("⚠️ Service temporarily unavailable. Please try later.")
+                flash("⚠️ API issue. Try later.")
             else:
-                flash("⚠️ Something went wrong. Please try again.")
-            
+                flash("⚠️ Something went wrong.")
 
     return render_template("remedies.html", query=query, results=results)
 
@@ -291,50 +305,55 @@ def recipes():
     results = []
 
     if query:
+
+        # ✅ CACHE CHECK
+        if query in cache:
+            return render_template("recipes.html", query=query, results=cache[query])
+
         try:
+            time.sleep(1)
+
             prompt = f"""
 Give exactly 3 Ayurvedic recipes for "{query}".
 
 STRICT RULES:
-- Output ONLY valid JSON array
-- No explanation
-- No markdown
+- Return ONLY JSON
 
 FORMAT:
 [
   {{
-    "name": "Recipe name",
-    "ingredients": ["item1", "item2"],
-    "process": ["step1", "step2"],
-    "benefits": ["benefit1", "benefit2"],
-    "dosha": "Vata/Pitta/Kapha"
+    "name": "...",
+    "ingredients": ["..."],
+    "process": ["..."],
+    "benefits": ["..."],
+    "dosha": "..."
   }}
 ]
 """
 
-            # SAME AS REMEDIES (IMPORTANT FIX)
-            model = genai.GenerativeModel("gemini-2.5-flash")
+            # ✅ FIXED MODEL
+            model = genai.GenerativeModel("gemini-1.5-flash")
             response = model.generate_content(prompt)
 
-            text = response.text.strip().replace("```json", "").replace("```", "").strip()
-            print("✅ RECIPE RESPONSE:", text)
+            text = response.text.strip().replace("```json", "").replace("```", "")
 
             match = re.search(r"\[.*\]", text, re.DOTALL)
 
             if match:
                 results = json.loads(match.group())
+                cache[query] = results
             else:
-                flash("⚠️ Could not parse recipes. Try again.")
+                flash("⚠️ Try again")
 
         except Exception as e:
-            print("❌ RECIPES ERROR:", e)
+            print("ERROR:", e)
 
             if "429" in str(e):
-                flash("⚠️ Too many requests. Please wait 30–60 seconds.")
+                flash("⚠️ Too many requests. Wait 1 minute.")
             elif "403" in str(e):
-                flash("⚠️ Service unavailable.")
+                flash("⚠️ API issue.")
             else:
-                flash("⚠️ Unable to fetch recipes. Try again.")
+                flash("⚠️ Unable to fetch recipes.")
 
     return render_template("recipes.html", query=query, results=results)
 # ----------- OTHER PAGES -----------
