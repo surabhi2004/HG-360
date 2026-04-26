@@ -151,33 +151,40 @@
           <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
           <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
         </svg>
-        <span>HealthGuard360</span>
+        <span class="notranslate" translate="no">HealthGuard360</span>
       </div>
 
       <div class="auth-section">
         <div id="google_translate_element" style="display:none !important;"></div>
-        <button onclick="translateToHindi()" class="lang-btn">🌐 Hindi</button>
-        <button onclick="translateToEnglish()" class="lang-btn">🌐 English</button>
+
+        <!-- notranslate keeps button labels safe from Google Translate -->
+        <button onclick="translateToHindi()"
+                class="lang-btn notranslate"
+                translate="no">🌐 हिंदी</button>
+
+        <button onclick="translateToEnglish()"
+                class="lang-btn notranslate"
+                translate="no">🌐 English</button>
       </div>
 
     </div>
   </header>
 
   <!-- MAIN LAYOUT -->
- <div class="main-wrapper pt-20">
+  <div class="main-wrapper pt-20">
 
     <!-- SIDEBAR -->
     <div class="sidebar p-4">
       <ul class="space-y-4">
-        <li><a href="/dashboard" class="block p-2 hover:bg-green-100">Dashboard</a></li>
-        <li><a href="/myprofile" class="block p-2 hover:bg-green-100">My Profile</a></li>
-        <li><a href="/remedies" class="block p-2 hover:bg-green-100">Home Remedies</a></li>
-        <li><a href="/dosh" class="block p-2 hover:bg-green-100">Dosha Test</a></li>
-        <li><a href="/diet" class="block p-2 hover:bg-green-100">Food & Diet</a></li>
-        <li><a href="/routine" class="block p-2 hover:bg-green-100">Daily Routine</a></li>
-        <li><a href="/recipes" class="block p-2 hover:bg-green-100">Recipes</a></li>
-        <li><a href="/panchakarma" class="block p-2 hover:bg-green-100">Panchakarma</a></li>
-        <li><a href="/yoga" class="block p-2 hover:bg-green-100">Yoga & Meditation</a></li>
+        <li><a href="/dashboard"    class="block p-2 hover:bg-green-100">Dashboard</a></li>
+        <li><a href="/myprofile"    class="block p-2 hover:bg-green-100">My Profile</a></li>
+        <li><a href="/remedies"     class="block p-2 hover:bg-green-100">Home Remedies</a></li>
+        <li><a href="/dosh"         class="block p-2 hover:bg-green-100">Dosha Test</a></li>
+        <li><a href="/diet"         class="block p-2 hover:bg-green-100">Food &amp; Diet</a></li>
+        <li><a href="/routine"      class="block p-2 hover:bg-green-100">Daily Routine</a></li>
+        <li><a href="/recipes"      class="block p-2 hover:bg-green-100">Recipes</a></li>
+        <li><a href="/panchakarma"  class="block p-2 hover:bg-green-100">Panchakarma</a></li>
+        <li><a href="/yoga"         class="block p-2 hover:bg-green-100">Yoga &amp; Meditation</a></li>
         <br><br>
         <li>
           <a href="{{ url_for('logout') }}" class="bg-green-500 text-white font-bold py-2 px-10 rounded">
@@ -220,31 +227,22 @@
       setTimeout(_hideBanner, 1000);
     }
 
-    // Wait for Google Translate widget to load, then translate
-    function waitForGoogleTranslate(lang, tries) {
-      tries = tries || 0;
-      if (tries > 20) return; // stop after 20 tries
-      var select = document.querySelector('.goog-te-combo');
-      if (select) {
-        select.value = lang;
-        select.dispatchEvent(new Event('change'));
-        setTimeout(_hideBanner, 300);
-        setTimeout(_hideBanner, 800);
-        setTimeout(_hideBanner, 1500);
-      } else {
-        // Widget not loaded yet, wait 200ms and retry
-        setTimeout(function() {
-          waitForGoogleTranslate(lang, tries + 1);
-        }, 200);
-      }
-    }
-
     function translateToHindi() {
-      waitForGoogleTranslate('hi');
+      var domain = window.location.hostname;
+      // Set cookie for both root and subdomain
+      document.cookie = "googtrans=/en/hi; path=/; domain=" + domain;
+      document.cookie = "googtrans=/en/hi; path=/; domain=." + domain;
+      document.cookie = "googtrans=/en/hi; path=/";
+      window.location.reload();
     }
 
     function translateToEnglish() {
-      waitForGoogleTranslate('en');
+      var domain = window.location.hostname;
+      // Clear the translation cookie so page reverts to English
+      document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" + domain;
+      document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=." + domain;
+      document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/";
+      window.location.reload();
     }
   </script>
 
